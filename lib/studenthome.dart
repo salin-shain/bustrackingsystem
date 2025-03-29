@@ -25,7 +25,9 @@ class _StudentHomepageState extends State<StudentHomepage> {
   @override
   void initState() {
     super.initState();
-    _fetchStudentName(); // ✅ NEW CODE: Fetch student name
+    _fetchStudentName();
+
+    // ✅ NEW CODE: Fetch student name
   }
 
   // ✅ NEW CODE: Function to fetch student name from Firestore
@@ -359,6 +361,14 @@ class _StudentHomepageState extends State<StudentHomepage> {
           Icon(Icons.search, color: Colors.black),
           SizedBox(width: 10),
         ],*/
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications),
+            onPressed: () {
+              _showNotificationList(context);
+            },
+          ),
+        ],
       ),
 
       drawer: Drawer(
@@ -623,4 +633,61 @@ class _StudentHomepageState extends State<StudentHomepage> {
       ),
     );
   }
+}
+
+void _showNotificationList(BuildContext context) async {
+  // Pass context explicitly
+  try {
+    QuerySnapshot snapshot =
+        await FirebaseFirestore.instance
+            .collection('Notifications') // Use correct collection name
+            .orderBy('timestamp', descending: true)
+            .get();
+
+    List<Map<String, dynamic>> notifications =
+        snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+
+    _showNotificationDialog(context, notifications); // Pass context correctly
+  } catch (e) {
+    print("❌ Error fetching notifications: $e");
+  }
+}
+
+void _showNotificationDialog(
+  BuildContext context,
+  List<Map<String, dynamic>> notifications,
+) {
+  showDialog(
+    context: context, // ✅ Ensure context is passed
+    builder:
+        (context) => AlertDialog(
+          title: const Text("Notifications"),
+          content:
+              notifications.isEmpty
+                  ? const Text("No new notifications.")
+                  : SizedBox(
+                    width: double.maxFinite,
+                    child: ListView(
+                      shrinkWrap: true,
+                      children:
+                          notifications
+                              .map(
+                                (notif) => ListTile(
+                                  title: Text(notif['title'] ?? "No Title"),
+                                  subtitle: Text(
+                                    notif['message'] ?? "No Message",
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close"),
+            ),
+          ],
+        ),
+  );
 }

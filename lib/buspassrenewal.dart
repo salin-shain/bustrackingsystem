@@ -34,10 +34,7 @@ class _BusPassRenewalState extends State<BusPassRenewal> {
     String userEmail = _auth.currentUser?.email ?? "Unknown";
     try {
       QuerySnapshot querySnapshot =
-          await _firestore
-              .collection('students')
-              .where('email', isEqualTo: userEmail)
-              .get();
+          await _firestore.collection('students').where('email', isEqualTo: userEmail).get();
 
       if (querySnapshot.docs.isNotEmpty) {
         Map<String, dynamic> studentData =
@@ -66,63 +63,82 @@ class _BusPassRenewalState extends State<BusPassRenewal> {
     }
   }
 
-  void _submitBusPassRenewal() {
-    // Handle submission logic (Save or update Firestore data)
-    print("✅ Bus pass renewal submitted!");
+  void _submitBusPassRenewal() async {
+    if (!hasBusPass) return;
+
+    String userEmail = _auth.currentUser?.email ?? "Unknown";
+
+    try {
+      await _firestore.collection('BusPassRenewals').add({
+        "name": nameController.text,
+        "phone": phoneController.text,
+        "email": userEmail,
+        "bus_route": routeController.text,
+        "boarding_point": boardingPointController.text,
+        "semester": semesterController.text,
+        "branch": branchController.text,
+        "status": "Pending", // Default status for admin approval
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Bus Pass Renewal Request Submitted Successfully!")),
+      );
+    } catch (e) {
+      print("❌ Error submitting renewal request: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to submit request. Try again!")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Bus Pass Renewal")),
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : hasBusPass
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : hasBusPass
               ? Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    _buildTextField("Name", nameController),
-                    _buildTextField("Phone", phoneController),
-                    _buildTextField("Email", emailController),
-                    _buildTextField("Route", routeController),
-                    _buildTextField("Boarding Point", boardingPointController),
-                    _buildTextField(
-                      "Semester",
-                      semesterController,
-                      enabled: true,
-                    ),
-                    _buildTextField("Branch", branchController, enabled: true),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _submitBusPassRenewal,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 20,
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      _buildTextField("Name", nameController),
+                      _buildTextField("Phone", phoneController),
+                      _buildTextField("Email", emailController),
+                      _buildTextField("Route", routeController),
+                      _buildTextField("Boarding Point", boardingPointController),
+                      _buildTextField("Semester", semesterController, enabled: true),
+                      _buildTextField("Branch", branchController, enabled: true),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _submitBusPassRenewal,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 20,
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        textStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        child: const Text("Submit"),
                       ),
-                      child: const Text("Submit"),
+                    ],
+                  ),
+                )
+              : const Center(
+                  child: Text(
+                    "No Bus Pass found. Please apply for one.",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
-              )
-              : Center(
-                child: Text(
-                  "No Bus Pass found. Please apply for one.",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
     );
   }
 
